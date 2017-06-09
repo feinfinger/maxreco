@@ -19,9 +19,8 @@ t0 = time.time()
 
 scanname = 'INF_T1_200mPsBr_005a_s01a'
 application_number = 11002139
-foldername = 'tomopy/previewtest'
 
-rawdir, recodir = p05tools.reco.get_paths(scanname, foldername=foldername, application_number=application_number, year=2016)
+rawdir, recodir = p05tools.reco.get_paths(scanname, application_number=application_number, year=2016)
 p05tools.file.mkdir(recodir)
 
 p05tools.reco.init_filelog(application_number, scanname, recodir)
@@ -43,11 +42,17 @@ nchunk = 3
 
 proj, flat, dark, theta = p05tools.reco.get_rawdata(scanlog, rawdir, verbose=True)
 
-binfactor = 2
-proj = p05tools.reco.rebin_stack(proj, binfactor, descriptor='proj')
-flat = p05tools.reco.rebin_stack(flat, binfactor, descriptor='flat')
-dark = p05tools.reco.rebin_stack(dark, binfactor, descriptor='dark')
-
+binlevel = 1    # in powers of 2
+pshape = proj.shape
+print(pshape)
+proj = tomopy.misc.morph.downsample(proj, binlevel, axis=1)
+proj = tomopy.misc.morph.downsample(proj, binlevel, axis=2)
+flat = tomopy.misc.morph.downsample(flat, binlevel, axis=1)
+flat = tomopy.misc.morph.downsample(flat, binlevel, axis=2)
+dark = tomopy.misc.morph.downsample(dark, binlevel, axis=1)
+dark = tomopy.misc.morph.downsample(dark, binlevel, axis=2)
+print('man')
+logger.info('rebinned proj from {} to {}'.format(pshape, proj.shape))
 
 proj = tomopy.prep.normalize.normalize(proj, flat, dark)
 
@@ -116,7 +121,7 @@ logger.info('removed rings from reco with standard settings.')
 
 ################################
 # Save data to disk
-subdirectory = 'preview/'
+subdirectory = ''
 
 # dxchange.write_tiff(reco, recodir + subdirectory + scanname + str(alpha), overwrite=True)
 dxchange.write_tiff_stack(reco, recodir + subdirectory + scanname, overwrite=True)
