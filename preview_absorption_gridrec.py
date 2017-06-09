@@ -17,9 +17,9 @@ import numpy
 
 t0 = time.time()
 
-scanname = ''
-application_number =
-foldername = ''
+scanname = 'INF_T1_200mPsBr_005a_s01a'
+application_number = 11002139
+foldername = 'tomopy/previewtest'
 
 rawdir, recodir = p05tools.reco.get_paths(scanname, foldername=foldername, application_number=application_number, year=2016)
 p05tools.file.mkdir(recodir)
@@ -37,48 +37,31 @@ scanlog = p05tools.file.parse_scanlog(rawdir + scanname + 'scan.log')
 ncore = 40
 nchunk = 3
 
+
 ################################
 # Projection preprocessing
 
-use_preprocessed_projs = False
+proj, flat, dark, theta = p05tools.reco.get_rawdata(scanlog, rawdir, verbose=True)
 
-if use_preprocessed_projs:
-    proj = dxchange.read_hdf5(recodir + 'norm.h5', 'exchange/data')
-    theta = dxchange.read_hdf5(recodir + 'theta.h5', 'exchange/data')
-    logger.info('loaded proj from file: %s' % (recodir + 'norm.h5'))
-    logger.info('loaded theta from file: %s' % (recodir + 'theta.h5'))
-else:
-    proj, flat, dark, theta = p05tools.reco.get_rawdata(scanlog, rawdir, verbose=True)
+binfactor = 2
+proj = p05tools.reco.rebin_stack(proj, binfactor, descriptor='proj')
+flat = p05tools.reco.rebin_stack(flat, binfactor, descriptor='flat')
+dark = p05tools.reco.rebin_stack(dark, binfactor, descriptor='dark')
 
-    binfactor = 2
-    proj = p05tools.reco.rebin_stack(proj, binfactor, descriptor='proj')
-    flat = p05tools.reco.rebin_stack(flat, binfactor, descriptor='flat')
-    dark = p05tools.reco.rebin_stack(dark, binfactor, descriptor='dark')
 
-    # correlate flats and save array with related proj/flats
-    corr_flat = p05tools.reco.correrlate_flat(proj, flat, verbose=True)
-    dxchange.write_hdf5(corr_flat, fname=recodir + 'corr_flat.h5', overwrite=True)
-    logger.info('saved corr_flat array to file: %s' % (recodir + 'corr_flat.h5'))
+proj = tomopy.prep.normalize.normalize(proj, flat, dark)
 
-    # read correlated flats
-    # corr_flat = dxchange.read_hdf5(recodir + 'corr_flat.h5', 'exchange/data')
-    # logger.info('loaded from file: %s' % (recodir + 'corr_flat.h5'))
+logger.info('normalized proj')
 
-    proj = p05tools.reco.normalize_corr(proj, flat, dark, corr_flat, ncore=ncore)
-    logger.info('logarithmized proj')
-
-    proj = tomopy.minus_log(proj)
-    logger.info('logarithmized proj')
-
-    dxchange.write_hdf5(proj, fname=recodir + 'norm.h5', overwrite=True)
-    dxchange.write_hdf5(theta, fname=recodir + 'theta.h5', overwrite=True)
+proj = tomopy.minus_log(proj)
+logger.info('logarithmized proj')
 
 
 ################################
 # Rotation center
 
 rcen = False
-auto_rcen = False
+auto_rcen = True
 manual_rcen = False
 
 if manual_rcen:
@@ -100,9 +83,11 @@ if auto_rcen:
 ################################
 # Reduce dataset
 #
-# skip = 770
-# proj = proj[:, ::skip, :]
-# theta = theta[::skip]
+nslice = 10
+slices = [numpy.int(i*proj.shape[1]/nslice) for i in numpy.arange(1,10)]
+proj = proj[:, slices, :]
+logger.info('reduced proj stack to {} slices at {}'.format(nslice, slices))
+# or use a single slice
 # slicenum =750
 # proj = proj[:, slicenum, :]
 # proj = proj[:,numpy.newaxis,:]
@@ -131,7 +116,7 @@ logger.info('removed rings from reco with standard settings.')
 
 ################################
 # Save data to disk
-subdirectory = 'reco/'
+subdirectory = 'preview/'
 
 # dxchange.write_tiff(reco, recodir + subdirectory + scanname + str(alpha), overwrite=True)
 dxchange.write_tiff_stack(reco, recodir + subdirectory + scanname, overwrite=True)
