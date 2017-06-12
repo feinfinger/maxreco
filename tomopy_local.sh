@@ -17,4 +17,6 @@ git clone http://github.com/data-exchange/DXchange dxchange
 cd $WDIR/dxchange
 python setup.py install
 cd $WDIR
-echo 'TOMPY INSTALLATION DONE.'
+find $WDIR -type d -exec chmod 750 {} \;
+find $WDIR -type f -exec chmod 660 {} \;
+echo 'TOMOPY INSTALLATION DONE.'
