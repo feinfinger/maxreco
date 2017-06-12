@@ -4,6 +4,8 @@ import tomopy
 import dxchange
 import logging
 import numpy
+import pdb
+import re
 
 
 ################################
@@ -20,7 +22,6 @@ t0 = time.time()
 scanname = 'ehh_2017_001_a'
 application_number = 11002139
 
-# rawdir, recodir = p05tools.reco.get_paths(scanname, application_number=application_number, year=2016)
 rawdir = '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/'
 recodir = '/asap3/petra3/gpfs/p05/2017/data/11002839/scratch_cc/tomopy'
 
@@ -31,7 +32,7 @@ logger = logging.getLogger('reco_logger.call_script')
 logger.info('raw dir: {}'.format(rawdir))
 logger.info('reco dir: {}'.format(recodir))
 
-scanlog = p05tools.file.parse_scanlog(rawdir + scanname + 'scan.log')
+scanlog = p05tools.file.parse_kit_scanlog(rawdir + scanname + '/scan.log')
 
 
 ################################
@@ -43,7 +44,22 @@ nchunk = 3
 ################################
 # Projection preprocessing
 
-proj, flat, dark, theta = p05tools.reco.get_rawdata(scanlog, rawdir, verbose=True)
+theta = p05tools.file.read_dat(rawdir + scanname + '/angle_list.dat')
+proj_current = p05tools.file.read_dat(rawdir + scanname + '/proj_current.dat')
+flat_current = p05tools.file.read_dat(rawdir + scanname + '/ref_current.dat')
+
+proj_ind= p05tools.file.misc.find(scanlog['proj_prefix'] + '*.tif', rawdir + scanname)
+proj_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(proj_ind)]
+flat_ind= p05tools.file.misc.find(scanlog['ref_prefix'] + '*.tif', rawdir + scanname)
+flat_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(flat_ind)]
+dark_ind= p05tools.file.misc.find(scanlog['dark_prefix'] + '*.tif', rawdir + scanname)
+dark_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(dark_ind)]
+
+pdb.set_trace()
+proj = dxchange.read_tiff_stack(rawdir + scanname + '/proj_0000.tif', proj_ind)
+flat = dxchange.read_tiff_stack(rawdir + scanname + '/flat_0000.tif', flat_ind)
+dark = dxchange.read_tiff_stack(rawdir + scanname + '/dark_0000.tif', dark_ind)
+
 
 binlevel = 1    # in powers of 2
 pshape = proj.shape
@@ -54,7 +70,7 @@ flat = tomopy.misc.morph.downsample(flat, binlevel, axis=1)
 flat = tomopy.misc.morph.downsample(flat, binlevel, axis=2)
 dark = tomopy.misc.morph.downsample(dark, binlevel, axis=1)
 dark = tomopy.misc.morph.downsample(dark, binlevel, axis=2)
-print('man')
+
 logger.info('rebinned proj from {} to {}'.format(pshape, proj.shape))
 
 proj = tomopy.prep.normalize.normalize(proj, flat, dark)
