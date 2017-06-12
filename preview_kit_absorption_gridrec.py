@@ -55,11 +55,9 @@ flat_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in so
 dark_ind= p05tools.file.misc.find(scanlog['dark_prefix'] + '*.tif', rawdir + scanname)
 dark_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(dark_ind)]
 
-pdb.set_trace()
-proj = dxchange.read_tiff_stack(rawdir + scanname + '/proj_0000.tif', proj_ind)
-flat = dxchange.read_tiff_stack(rawdir + scanname + '/flat_0000.tif', flat_ind)
-dark = dxchange.read_tiff_stack(rawdir + scanname + '/dark_0000.tif', dark_ind)
-
+proj = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['proj_prefix'] +'_0000.tif', proj_ind)
+flat = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['ref_prefix'] +'_0000.tif', flat_ind)
+dark = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['dark_prefix'] +'_0000.tif', dark_ind)
 
 binlevel = 1    # in powers of 2
 pshape = proj.shape
