@@ -1,7 +1,7 @@
 WDIR=$PWD
 git clone http://github.com/tomopy/tomopy
 cd $WDIR/tomopy
-python setup.py install
+python setup.py install --user
 cd $WDIR
 git clone http://github.com/feinfinger/p05tools
 git clone https://github.com/hgomersall/pyFFTW.git pyfftw
