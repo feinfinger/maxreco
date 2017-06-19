@@ -5,6 +5,7 @@ import dxchange
 import logging
 import numpy
 import re
+import pdb
 
 
 ################################
@@ -22,7 +23,7 @@ scanname = 'ehh_2017_001_a'
 application_number = 11002139
 
 rawdir = '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/'
-recodir = '/asap3/petra3/gpfs/p05/2017/data/11002839/scratch_cc/tomopy'
+recodir = '/asap3/petra3/gpfs/p05/2017/data/11002839/scratch_cc/tomopy/' + scanname + '/'
 
 p05tools.file.mkdir(recodir)
 
@@ -55,20 +56,43 @@ dark_ind= p05tools.file.misc.find(rawdir + scanname + '/' + scanlog['dark_prefix
 dark_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(dark_ind)]
 
 proj = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['proj_prefix'] +'_0000.tif', proj_ind)
+logger.info('read proj stack with shape: {}'.format(proj.shape))
 flat = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['ref_prefix'] +'_0000.tif', flat_ind)
+logger.info('read flat stack with shape: {}'.format(flat.shape))
 dark = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['dark_prefix'] +'_0000.tif', dark_ind)
+logger.info('read dark stack with shape: {}'.format(dark.shape))
+
+
+################################
+# Reduce dataset
+#
+nslice = 10
+slices = [numpy.int(i*proj.shape[1]/(nslice+1)) for i in numpy.arange(1,nslice+1)]
+proj = proj[:, slices, :]
+flat = flat[:, slices, :]
+dark = dark[:, slices, :]
+logger.info('reduced proj, flat and dark stacks to {} slices at {}'.format(nslice, slices))
+logger.info('proj shape now {}'.format(proj.shape))
+logger.info('flat shape now {}'.format(flat.shape))
+logger.info('dark shape now {}'.format(dark.shape))
+# or use a single slice
+# slicenum =750
+# proj = proj[:, slicenum, :]
+# proj = proj[:,numpy.newaxis,:]
 
 binlevel = 1    # in powers of 2
 pshape = proj.shape
-print(pshape)
-proj = tomopy.misc.morph.downsample(proj, binlevel, axis=1)
+# downsample only x-dimension, due to reduced number of slices
 proj = tomopy.misc.morph.downsample(proj, binlevel, axis=2)
-flat = tomopy.misc.morph.downsample(flat, binlevel, axis=1)
 flat = tomopy.misc.morph.downsample(flat, binlevel, axis=2)
-dark = tomopy.misc.morph.downsample(dark, binlevel, axis=1)
 dark = tomopy.misc.morph.downsample(dark, binlevel, axis=2)
 
 logger.info('rebinned proj from {} to {}'.format(pshape, proj.shape))
+logger.info('proj shape now {}'.format(proj.shape))
+logger.info('flat shape now {}'.format(flat.shape))
+logger.info('dark shape now {}'.format(dark.shape))
+
+pdb.set_trace()
 
 proj = tomopy.prep.normalize.normalize(proj, flat, dark)
 
@@ -99,19 +123,6 @@ if auto_rcen:
     logger.info('found rotation center at %g px' % rcen)
     if rcen - proj.shape[2] > 20:
         logger.warning('rotation center more than 20px from projection center.')
-
-
-################################
-# Reduce dataset
-#
-nslice = 10
-slices = [numpy.int(i*proj.shape[1]/nslice) for i in numpy.arange(1,10)]
-proj = proj[:, slices, :]
-logger.info('reduced proj stack to {} slices at {}'.format(nslice, slices))
-# or use a single slice
-# slicenum =750
-# proj = proj[:, slicenum, :]
-# proj = proj[:,numpy.newaxis,:]
 
 
 ################################
