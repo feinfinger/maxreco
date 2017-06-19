@@ -4,7 +4,6 @@ import tomopy
 import dxchange
 import logging
 import numpy
-import pdb
 import re
 
 
@@ -48,11 +47,11 @@ theta = p05tools.file.read_dat(rawdir + scanname + '/angle_list.dat')
 proj_current = p05tools.file.read_dat(rawdir + scanname + '/proj_current.dat')
 flat_current = p05tools.file.read_dat(rawdir + scanname + '/ref_current.dat')
 
-proj_ind= p05tools.file.misc.find(scanlog['proj_prefix'] + '*.tif', rawdir + scanname)
+proj_ind= p05tools.file.misc.find(rawdir + scanname + '/' + scanlog['proj_prefix'] + '*.tif')
 proj_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(proj_ind)]
-flat_ind= p05tools.file.misc.find(scanlog['ref_prefix'] + '*.tif', rawdir + scanname)
+flat_ind= p05tools.file.misc.find(rawdir + scanname + '/' + scanlog['ref_prefix'] + '*.tif')
 flat_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(flat_ind)]
-dark_ind= p05tools.file.misc.find(scanlog['dark_prefix'] + '*.tif', rawdir + scanname)
+dark_ind= p05tools.file.misc.find(rawdir + scanname + '/' + scanlog['dark_prefix'] + '*.tif')
 dark_ind = [int(re.search('\d+', fname.split('/')[-1]).group(0)) for fname in sorted(dark_ind)]
 
 proj = dxchange.read_tiff_stack(rawdir + scanname + '/' + scanlog['proj_prefix'] +'_0000.tif', proj_ind)
